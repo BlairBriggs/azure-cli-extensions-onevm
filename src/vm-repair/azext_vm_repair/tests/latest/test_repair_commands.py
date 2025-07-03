@@ -1349,3 +1349,47 @@ class WindowsNonPremiumOSDiskRepairVM(LiveScenarioTest):
 
         # Call Restore
         self.cmd('vm repair restore -g {rg} -n {vm} --yes')
+
+
+@pytest.mark.WindowsManagedPublicIP
+class WindowsManagedDiskCreateRestoreWithPublicIPTest(LiveScenarioTest):
+    @ResourceGroupPreparer(location='westus2')
+    def test_vmrepair_WinManagedCreateRestoreWithPublicIP(self, resource_group):
+        self.kwargs.update({
+            'vm': 'vm1'
+        })
+        # Create test VM
+        self.cmd('vm create -g {rg} -n {vm} --admin-username azureadmin --image Win2016Datacenter --admin-password !Passw0rd2018')
+        vms = self.cmd('vm list -g {rg} -o json').get_output_in_json()
+        assert len(vms) == 1
+        # Create Repair VM with public IP
+        result = self.cmd('vm repair create -g {rg} -n {vm} --repair-username azureadmin --repair-password !Passw0rd2018 --associate-public-ip --yes -o json').get_output_in_json()
+        assert result['status'] == STATUS_SUCCESS, result['error_message']
+        repair_resource_group = result['repair_resource_group']
+        # Assert that a public IP was created
+        public_ip_list = self.cmd('network public-ip list -g {} -o json'.format(repair_resource_group)).get_output_in_json()
+        assert len(public_ip_list) == 1
+        # Clean up
+        self.cmd('vm repair restore -g {rg} -n {vm} --yes')
+
+@pytest.mark.LinuxManagedPublicIP
+class LinuxManagedDiskCreateRestoreWithPublicIPTest(LiveScenarioTest):
+    @ResourceGroupPreparer(location='westus2')
+    def test_vmrepair_LinuxManagedCreateRestoreWithPublicIP(self, resource_group):
+        self.kwargs.update({
+            'vm': 'vm1'
+        })
+        # Create test VM
+        self.cmd('vm create -g {rg} -n {vm} --image Canonical:UbuntuServer:18.04-LTS:latest --admin-username azureadmin --admin-password !Passw0rd2018')
+        vms = self.cmd('vm list -g {rg} -o json').get_output_in_json()
+        assert len(vms) == 1
+        # Create Repair VM with public IP
+        result = self.cmd('vm repair create -g {rg} -n {vm} --repair-username azureadmin --repair-password !Passw0rd2018 --associate-public-ip --yes -o json').get_output_in_json()
+        assert result['status'] == STATUS_SUCCESS, result['error_message']
+        repair_resource_group = result['repair_resource_group']
+        # Assert that a public IP was created
+        public_ip_list = self.cmd('network public-ip list -g {} -o json'.format(repair_resource_group)).get_output_in_json()
+        assert len(public_ip_list) == 1
+       
+        # Clean up
+        self.cmd('vm repair restore -g {rg} -n {vm} --yes')

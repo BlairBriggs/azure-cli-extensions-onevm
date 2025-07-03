@@ -8,6 +8,8 @@ import json
 import timeit
 import traceback
 import requests
+import string
+import secrets
 
 from knack.log import get_logger
 
@@ -54,6 +56,28 @@ from .repair_utils import (
 )
 from .exceptions import AzCommandError, RunScriptNotFoundForIdError, SupportingResourceNotFoundError, CommandCanceledByUserError
 logger = get_logger(__name__)
+
+
+def _normalize_tags(tags):
+    """
+    Normalize tags input to a CLI-compatible string.
+    Accepts None, empty list, list of strings, dict, or string.
+    Returns a string suitable for Azure CLI (key1=value1 key2=value2 ...), or '' if no tags.
+    """
+    if tags is None:
+        return ''
+    if isinstance(tags, dict):
+        # Convert dict to CLI string
+        return ' '.join(f"{k}={v}" for k, v in tags.items())
+    if isinstance(tags, list):
+        if not tags:
+            return ''
+        # If list of key=value strings, join with space
+        return ' '.join(str(t) for t in tags)
+    if isinstance(tags, str):
+        return tags.strip()
+    # Fallback: try str
+    return str(tags)
 
 
 def create(cmd, vm_name, resource_group_name, repair_password=None, repair_username=None, repair_vm_name=None, copy_disk_name=None, repair_group_name=None, unlock_encrypted_vm=False, enable_nested=False, associate_public_ip=False, distro='ubuntu', yes=False, encrypt_recovery_key="", disable_trusted_launch=False, os_disk_type=None, tags=None):  
@@ -157,14 +181,10 @@ def create(cmd, vm_name, resource_group_name, repair_password=None, repair_usern
         
         # Set up base create vm command
         # Azure CLI accepts tags as either a space-separated list of key=value pairs or a single string. Support both dict and string for flexibility.
+        tags = _normalize_tags(tags)
         tag_arg = ''
         if tags:
-            # Accept tags as dict or string. If string, pass as-is. If dict, convert to CLI format.
-            if isinstance(tags, dict):
-                tag_arg = ' '.join([f"{k}={v}" if v is not None else f"{k}" for k, v in tags.items()])
-            else:
-                tag_arg = str(tags)
-            tag_arg = f' --tags {tag_arg}'
+            tag_arg = f' --tags {tags}'
         # Only include the --public-ip-address argument if associate_public_ip is True. Omitting this argument prevents creation of an unwanted public IP.
         public_ip_arg = f' --public-ip-address {public_ip_name}' if associate_public_ip else ''
         if is_linux:
@@ -1069,7 +1089,10 @@ def repair_button(cmd, vm_name, resource_group_name, button_command, repair_pass
     repair_group_name = 'repair-' + vm_name + '-' + timestamp
     existing_rg = _check_existing_rg(repair_group_name)
 
-    create_out = create(cmd, vm_name, resource_group_name, repair_password, repair_username, repair_vm_name=repair_vm_name, copy_disk_name=copy_disk_name, repair_group_name=repair_group_name, associate_public_ip=False, yes=True)
+    # Normalize tags to Azure CLI format (string of key=value pairs)
+    normalized_tags = _normalize_tags(tags)
+    tag_arg = f' --tags {normalized_tags}' if normalized_tags else ''
+    create_out = create(cmd, vm_name, resource_group_name, repair_password, repair_username, repair_vm_name=repair_vm_name, copy_disk_name=copy_disk_name, repair_group_name=repair_group_name, associate_public_ip=False, yes=True, tags=tags)
 
     # log create_out
     logger.info('create_out: %s', create_out)

@@ -18,7 +18,7 @@ helps['vm repair create'] = """
     parameters:
         - name: --tags
           type: string
-          short-summary: Space-separated tags in 'key[=value]' format.
+          short-summary: Space-separated tags in 'key[=value]' format. Multiple tags can be specified: key1=value1 key2=value2. Example: --tags env=dev owner=alice
     examples:
         - name: Create a repair VM
           text: >
@@ -124,7 +124,7 @@ helps['vm repair repair-and-restore'] = """
     parameters:
         - name: --tags
           type: string
-          short-summary: Space-separated tags in 'key[=value]' format.
+          short-summary: Space-separated tags in 'key[=value]' format. Multiple tags can be specified: key1=value1 key2=value2. Example: --tags env=prod owner=bob
     examples:
         - name: Repair and restore a VM with tags.
           text: >
@@ -140,7 +140,7 @@ helps['vm repair repair-button'] = """
     parameters:
         - name: --tags
           type: string
-          short-summary: Space-separated tags in 'key[=value]' format.
+          short-summary: Space-separated tags in 'key[=value]' format. Multiple tags can be specified: key1=value1 key2=value2. Example: --tags env=test owner=alice
     examples:
         - name: repair-button with tags.
           text: >
